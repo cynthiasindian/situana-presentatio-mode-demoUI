@@ -736,7 +736,9 @@
         }
 
         const result = await response.json();
-        displayResults(result);
+        // Handle array response from backend
+        const data = Array.isArray(result) ? result[0] : result;
+        displayResults(data);
 
       } catch (error) {
         console.error('Error:', error);
@@ -756,11 +758,8 @@
       // Title
       document.getElementById('reportTitle').textContent = data.output?.title || 'Coaching Report';
 
-      // Energy
-      const energy = data.vocalAnalysis?.energyDial || '-';
+      // Quadrant
       const quadrant = data.vocalAnalysis?.energyQuadrant || '';
-      document.getElementById('energyDial').textContent = energy + '/10';
-
       const quadrantTag = document.getElementById('quadrantTag');
       if (quadrant) {
         quadrantTag.textContent = quadrant;
