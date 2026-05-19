@@ -433,6 +433,97 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Criteria Section */
+    .criteria-section {
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      background: #f9fafb;
+    }
+
+    .criteria-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .criteria-header label {
+      margin-bottom: 0;
+    }
+
+    .btn-add-criteria {
+      padding: 6px 12px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-add-criteria:hover {
+      background: #5a67d8;
+    }
+
+    .criteria-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .criteria-item {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .criteria-item input {
+      padding: 10px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .criteria-item input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .btn-remove-criteria {
+      padding: 8px 12px;
+      background: #fee2e2;
+      color: #dc2626;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.2s;
+    }
+
+    .btn-remove-criteria:hover {
+      background: #fecaca;
+    }
+
+    .criteria-empty {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 14px;
+      padding: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .criteria-item {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -499,6 +590,18 @@
           <input type="text" id="learnerProfile" placeholder="e.g., Junior Sales Rep">
         </div>
 
+        <div class="form-group">
+          <div class="criteria-section">
+            <div class="criteria-header">
+              <label>Evaluation Criteria</label>
+              <button type="button" class="btn-add-criteria" id="addCriteriaBtn">+ Add Criterion</button>
+            </div>
+            <div class="criteria-list" id="criteriaList">
+              <div class="criteria-empty" id="criteriaEmpty">No criteria added. Click "Add Criterion" to specify what should be evaluated.</div>
+            </div>
+          </div>
+        </div>
+
         <div class="error" id="errorMsg"></div>
 
         <button type="submit" class="btn-submit" id="submitBtn">
@@ -549,6 +652,54 @@
         recordPanel.classList.toggle('active', tabName === 'record');
       });
     });
+
+    // Criteria management
+    const criteriaList = document.getElementById('criteriaList');
+    const criteriaEmpty = document.getElementById('criteriaEmpty');
+    const addCriteriaBtn = document.getElementById('addCriteriaBtn');
+    let criteriaCount = 0;
+
+    function addCriterion() {
+      criteriaCount++;
+      criteriaEmpty.style.display = 'none';
+
+      const criteriaItem = document.createElement('div');
+      criteriaItem.className = 'criteria-item';
+      criteriaItem.dataset.id = criteriaCount;
+      criteriaItem.innerHTML = `
+        <input type="text" class="criteria-name" placeholder="Criterion name (e.g., Clear Structure)">
+        <input type="text" class="criteria-context" placeholder="Context (e.g., Message clarity and flow)">
+        <button type="button" class="btn-remove-criteria" onclick="removeCriterion(${criteriaCount})">×</button>
+      `;
+      criteriaList.appendChild(criteriaItem);
+    }
+
+    function removeCriterion(id) {
+      const item = criteriaList.querySelector(`[data-id="${id}"]`);
+      if (item) {
+        item.remove();
+      }
+      // Show empty message if no criteria left
+      const remainingItems = criteriaList.querySelectorAll('.criteria-item');
+      if (remainingItems.length === 0) {
+        criteriaEmpty.style.display = 'block';
+      }
+    }
+
+    function getCriteria() {
+      const items = criteriaList.querySelectorAll('.criteria-item');
+      const criteria = [];
+      items.forEach(item => {
+        const name = item.querySelector('.criteria-name').value.trim();
+        const context = item.querySelector('.criteria-context').value.trim();
+        if (name) {
+          criteria.push({ name, context, weight: Math.floor(100 / items.length) });
+        }
+      });
+      return criteria;
+    }
+
+    addCriteriaBtn.addEventListener('click', addCriterion);
 
     // File upload handling
     const fileUpload = document.getElementById('fileUpload');
@@ -725,6 +876,7 @@
         formData.append('learner_profile', document.getElementById('learnerProfile').value || 'Learner');
         formData.append('complexity', document.getElementById('complexity').value);
         formData.append('scenario_id', 'session-' + Date.now());
+        formData.append('criteria', JSON.stringify(getCriteria()));
 
         const response = await fetch(WEBHOOK_URL, {
           method: 'POST',
@@ -811,6 +963,12 @@
       audioTabs[0].classList.add('active');
       uploadPanel.classList.add('active');
       recordPanel.classList.remove('active');
+
+      // Reset criteria
+      const criteriaItems = criteriaList.querySelectorAll('.criteria-item');
+      criteriaItems.forEach(item => item.remove());
+      criteriaEmpty.style.display = 'block';
+      criteriaCount = 0;
     }
   </script>
 </body>
